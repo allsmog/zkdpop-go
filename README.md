@@ -10,7 +10,7 @@ A Golang framework for zero-knowledge Demonstration of Proof-of-Possession (zkDP
 - Per-request DPoP verification middleware
 - Stateless resource servers (validate JWT + DPoP without ZK knowledge)
 - Clean extension points for broader ZK authorization
-- Comprehensive security hardening (replay protection, tight windows, rate limits)
+- Comprehensive security hardening (replay protection, tight windows, configurable rate limits)
 
 ## Architecture
 
@@ -40,7 +40,13 @@ go run ./cmd/zkdpop-demo-api
 
 # Run example client
 go run ./examples/client-go
+
+# Use the Ristretto255 group instead of secp256k1
+go run ./cmd/zkdpop-authd --curve ristretto255
+go run ./examples/client-go --curve ristretto255
 ```
+
+Both servers expose a `--rate-limit` flag (requests per minute per client). The default of `120` for the authd binary and `240` for the demo API keeps login flows responsive while guarding against brute-force attempts.
 
 ## Project Structure
 

@@ -22,10 +22,12 @@ func main() {
 		authServer = flag.String("auth-server", "http://localhost:8080", "Auth server base URL")
 		audience   = flag.String("audience", "zkdpop-api", "JWT audience")
 		replayTTL  = flag.Duration("replay-ttl", 5*time.Minute, "DPoP replay cache TTL")
+		rateLimit  = flag.Int("rate-limit", 240, "Max requests per minute per client")
 	)
 	flag.Parse()
 
 	log.Println("Starting zkDPoP Demo API Server...")
+	log.Printf("Rate limit: %d requests/minute per client", *rateLimit)
 
 	// Initialize DPoP replay store
 	replayStore := dpop.NewInMemoryReplayStore(*replayTTL)
@@ -61,6 +63,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(30 * time.Second))
+	r.Use(mw.RateLimit(*rateLimit, time.Minute))
 
 	// CORS for development
 	r.Use(mw.CORS)
@@ -78,7 +81,7 @@ func main() {
 			"timestamp": time.Now(),
 			"service":   "zkdpop-demo-api",
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	})
@@ -105,13 +108,13 @@ func main() {
 			}
 
 			response := map[string]interface{}{
-				"message":   "Profile data",
-				"subject":   claims.Subject,
-				"audience":  claims.Audience,
-				"issued_at": claims.IssuedAt,
+				"message":    "Profile data",
+				"subject":    claims.Subject,
+				"audience":   claims.Audience,
+				"issued_at":  claims.IssuedAt,
 				"expires_at": claims.ExpiresAt,
-				"dpop_jkt":  dpopResult.JKT,
-				"zk_info":   claims.ZK,
+				"dpop_jkt":   dpopResult.JKT,
+				"zk_info":    claims.ZK,
 			}
 
 			w.Header().Set("Content-Type", "application/json")
@@ -121,7 +124,7 @@ func main() {
 		// Orders endpoint
 		r.Get("/orders", func(w http.ResponseWriter, r *http.Request) {
 			claims, _ := mw.GetJWTClaims(r)
-			
+
 			// Mock orders data
 			orders := []map[string]interface{}{
 				{
@@ -131,7 +134,7 @@ func main() {
 					"user":   claims.Subject,
 				},
 				{
-					"id":     "order_002", 
+					"id":     "order_002",
 					"amount": 149.50,
 					"status": "pending",
 					"user":   claims.Subject,
@@ -153,14 +156,14 @@ func main() {
 
 			r.Get("/data", func(w http.ResponseWriter, r *http.Request) {
 				claims, _ := mw.GetJWTClaims(r)
-				
+
 				response := map[string]interface{}{
-					"message":    "This endpoint requires Schnorr ZK authentication",
-					"subject":    claims.Subject,
-					"zk_scheme":  claims.ZK.Scheme,
-					"zk_group":   claims.ZK.Group,
-					"timeslice":  claims.ZK.Timeslice,
-					"timestamp":  time.Now(),
+					"message":     "This endpoint requires Schnorr ZK authentication",
+					"subject":     claims.Subject,
+					"zk_scheme":   claims.ZK.Scheme,
+					"zk_group":    claims.ZK.Group,
+					"timeslice":   claims.ZK.Timeslice,
+					"timestamp":   time.Now(),
 					"secret_data": "Only accessible via ZK proof",
 				}
 
@@ -175,13 +178,13 @@ func main() {
 
 			r.Get("/bitcoin-data", func(w http.ResponseWriter, r *http.Request) {
 				claims, _ := mw.GetJWTClaims(r)
-				
+
 				response := map[string]interface{}{
-					"message":     "This endpoint requires secp256k1 authentication",
-					"subject":     claims.Subject,
-					"curve":       claims.ZK.Group,
+					"message":      "This endpoint requires secp256k1 authentication",
+					"subject":      claims.Subject,
+					"curve":        claims.ZK.Group,
 					"bitcoin_data": "Mock Bitcoin-related data",
-					"timestamp":   time.Now(),
+					"timestamp":    time.Now(),
 				}
 
 				w.Header().Set("Content-Type", "application/json")
@@ -199,14 +202,14 @@ func main() {
 			"audience":    *audience,
 			"endpoints": map[string]interface{}{
 				"public": map[string]string{
-					"GET /health":  "Health check",
-					"GET /public":  "Public endpoint (no auth)",
-					"GET /info":    "This information",
+					"GET /health": "Health check",
+					"GET /public": "Public endpoint (no auth)",
+					"GET /info":   "This information",
 				},
 				"protected": map[string]string{
-					"GET /api/profile":           "User profile (requires DPoP + JWT)",
-					"GET /api/orders":            "User orders (requires DPoP + JWT)",
-					"GET /api/secure/data":       "Secure data (requires Schnorr ZK)",
+					"GET /api/profile":                "User profile (requires DPoP + JWT)",
+					"GET /api/orders":                 "User orders (requires DPoP + JWT)",
+					"GET /api/secure/data":            "Secure data (requires Schnorr ZK)",
 					"GET /api/secp256k1/bitcoin-data": "Bitcoin data (requires secp256k1)",
 				},
 			},

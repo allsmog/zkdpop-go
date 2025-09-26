@@ -62,11 +62,11 @@ func createTestJWT(issuer, subject, audience, jkt string, signer zkjwt.TokenSign
 			"jkt": jkt,
 		},
 		"zk": map[string]interface{}{
-			"scheme":  "schnorr-id",
-			"grp":     "secp256k1",
-			"t_hash":  "dGVzdC1oYXNo",
-			"c":       "dGVzdC1jaGFsbGVuZ2U=",
-			"ts":      time.Now().Format(time.RFC3339),
+			"scheme": "schnorr-id",
+			"grp":    "secp256k1",
+			"t_hash": "dGVzdC1oYXNo",
+			"c":      "dGVzdC1jaGFsbGVuZ2U=",
+			"ts":     time.Now().Format(time.RFC3339),
 		},
 	}
 
@@ -603,126 +603,163 @@ func TestUtilityMiddleware(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
-	
+
 	t.Run("CORS", func(t *testing.T) {
 		// Test CORS headers are added
 		req := httptest.NewRequest("GET", "/test", nil)
 		rr := httptest.NewRecorder()
-		
+
 		handler := CORS(testHandler)
 		handler.ServeHTTP(rr, req)
-		
+
 		if rr.Code != http.StatusOK {
 			t.Errorf("expected status 200, got %d", rr.Code)
 		}
-		
+
 		// Check CORS headers
 		if origin := rr.Header().Get("Access-Control-Allow-Origin"); origin != "*" {
 			t.Errorf("expected CORS origin *, got %s", origin)
 		}
-		
+
 		if methods := rr.Header().Get("Access-Control-Allow-Methods"); methods == "" {
 			t.Error("expected CORS methods header")
 		}
-		
+
 		if headers := rr.Header().Get("Access-Control-Allow-Headers"); headers == "" {
 			t.Error("expected CORS headers header")
 		}
 	})
-	
+
 	t.Run("CORSOptions", func(t *testing.T) {
 		// Test OPTIONS request handling
 		req := httptest.NewRequest("OPTIONS", "/test", nil)
 		rr := httptest.NewRecorder()
-		
+
 		handler := CORS(testHandler)
 		handler.ServeHTTP(rr, req)
-		
+
 		if rr.Code != http.StatusOK {
 			t.Errorf("expected status 200, got %d", rr.Code)
 		}
-		
+
 		// Should not call next handler for OPTIONS
 		if body := rr.Body.String(); body != "" {
 			t.Error("OPTIONS should not call next handler")
 		}
 	})
-	
+
 	t.Run("RequestID", func(t *testing.T) {
 		// Test request ID generation
 		req := httptest.NewRequest("GET", "/test", nil)
 		rr := httptest.NewRecorder()
-		
+
 		handler := RequestID(testHandler)
 		handler.ServeHTTP(rr, req)
-		
+
 		if rr.Code != http.StatusOK {
 			t.Errorf("expected status 200, got %d", rr.Code)
 		}
-		
+
 		// Check request ID header is set
 		if requestID := rr.Header().Get("X-Request-ID"); requestID == "" {
 			t.Error("expected X-Request-ID header")
 		}
 	})
-	
+
 	t.Run("RequestIDExisting", func(t *testing.T) {
 		// Test with existing request ID
 		existingID := "test-request-123"
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.Header.Set("X-Request-ID", existingID)
 		rr := httptest.NewRecorder()
-		
+
 		handler := RequestID(testHandler)
 		handler.ServeHTTP(rr, req)
-		
+
 		if rr.Code != http.StatusOK {
 			t.Errorf("expected status 200, got %d", rr.Code)
 		}
-		
+
 		// Should preserve existing request ID
 		if requestID := rr.Header().Get("X-Request-ID"); requestID != existingID {
 			t.Errorf("expected request ID %s, got %s", existingID, requestID)
 		}
 	})
-	
+
 	t.Run("Recovery", func(t *testing.T) {
 		// Test panic recovery
 		panicHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			panic("test panic")
 		})
-		
+
 		req := httptest.NewRequest("GET", "/test", nil)
 		rr := httptest.NewRecorder()
-		
+
 		handler := Recovery(panicHandler)
 		handler.ServeHTTP(rr, req)
-		
+
 		if rr.Code != http.StatusInternalServerError {
 			t.Errorf("expected status 500 after panic, got %d", rr.Code)
 		}
-		
+
 		if body := rr.Body.String(); !strings.Contains(body, "Internal Server Error") {
 			t.Errorf("expected error message, got %s", body)
 		}
 	})
-	
+
 	t.Run("RecoveryNoPanic", func(t *testing.T) {
 		// Test normal operation without panic
 		req := httptest.NewRequest("GET", "/test", nil)
 		rr := httptest.NewRecorder()
-		
+
 		handler := Recovery(testHandler)
 		handler.ServeHTTP(rr, req)
-		
+
 		if rr.Code != http.StatusOK {
 			t.Errorf("expected status 200, got %d", rr.Code)
 		}
-		
+
 		if body := rr.Body.String(); body != "OK" {
 			t.Errorf("expected OK, got %s", body)
 		}
 	})
+}
+
+func TestRateLimit(t *testing.T) {
+	ratelimited := RateLimit(2, time.Minute)
+
+	counter := 0
+	baseHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		counter++
+		w.WriteHeader(http.StatusOK)
+	})
+
+	handler := ratelimited(baseHandler)
+
+	req := httptest.NewRequest("GET", "/rate", nil)
+	req.RemoteAddr = "192.0.2.1:1234"
+
+	resp1 := httptest.NewRecorder()
+	handler.ServeHTTP(resp1, req)
+	if resp1.Code != http.StatusOK {
+		t.Fatalf("expected first request to succeed, got %d", resp1.Code)
+	}
+
+	resp2 := httptest.NewRecorder()
+	handler.ServeHTTP(resp2, req)
+	if resp2.Code != http.StatusOK {
+		t.Fatalf("expected second request to succeed, got %d", resp2.Code)
+	}
+
+	resp3 := httptest.NewRecorder()
+	handler.ServeHTTP(resp3, req)
+	if resp3.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected rate limit to trigger, got %d", resp3.Code)
+	}
+
+	if counter != 2 {
+		t.Fatalf("expected handler to execute twice, ran %d times", counter)
+	}
 }
 
 func TestCombinedMiddleware(t *testing.T) {
@@ -759,7 +796,7 @@ func TestCombinedMiddleware(t *testing.T) {
 		req1 := httptest.NewRequest(method, url, nil)
 		req1.Header.Set("DPoP", dpopProof)
 		rr1 := httptest.NewRecorder()
-		
+
 		dpopMW(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_, ok := GetDPoPResult(r)
 			if !ok {

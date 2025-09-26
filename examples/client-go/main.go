@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/big"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -31,6 +30,7 @@ func main() {
 		authServer = flag.String("auth-server", "http://localhost:8080", "Auth server base URL")
 		apiServer  = flag.String("api-server", "http://localhost:8081", "API server base URL")
 		audience   = flag.String("audience", "zkdpop-api", "JWT audience")
+		curveName  = flag.String("curve", "secp256k1", "Curve to use (secp256k1|ristretto255)")
 	)
 	flag.Parse()
 
@@ -41,11 +41,17 @@ func main() {
 	log.Printf("Audience: %s", *audience)
 	log.Println()
 
+	crv, err := curve.FromName(*curveName)
+	if err != nil {
+		log.Fatalf("Unsupported curve %q: %v", *curveName, err)
+	}
+
 	client := &ZKClient{
 		AuthServerURL: *authServer,
 		APIServerURL:  *apiServer,
 		Audience:      *audience,
 		HTTPClient:    &http.Client{Timeout: 30 * time.Second},
+		curve:         crv,
 	}
 
 	// Run the demo
@@ -84,6 +90,7 @@ func (c *ZKClient) RunDemo() error {
 	if err := c.initializeCrypto(); err != nil {
 		return fmt.Errorf("failed to initialize crypto: %w", err)
 	}
+	log.Printf("  ✅ Curve: %s", c.curve.Name())
 	log.Printf("  ✅ Identity public key: %x", c.identityPublicKey[:8])
 	log.Printf("  ✅ DPoP JWK thumbprint: %s", c.computeJWKThumbprint()[:16])
 
@@ -114,8 +121,10 @@ func (c *ZKClient) RunDemo() error {
 
 // initializeCrypto sets up the identity and DPoP key pairs
 func (c *ZKClient) initializeCrypto() error {
-	// Initialize curve
-	c.curve = curve.NewSecp256k1()
+	// Ensure curve is configured
+	if c.curve == nil {
+		c.curve = curve.NewSecp256k1()
+	}
 
 	// Generate identity key pair for ZK authentication
 	identityPrivateKey, err := c.curve.GenerateScalar()
@@ -405,9 +414,8 @@ func (c *ZKClient) makeJSONRequest(method, path string, body interface{}, withDP
 
 // generateDPoPProof creates a DPoP proof JWT
 func (c *ZKClient) generateDPoPProof(method, urlStr string) (string, error) {
-	// Parse URL
-	u, err := url.Parse(urlStr)
-	if err != nil {
+	// Parse URL (validation only)
+	if _, err := url.Parse(urlStr); err != nil {
 		return "", fmt.Errorf("invalid URL: %w", err)
 	}
 
@@ -456,7 +464,6 @@ func (c *ZKClient) computeJWKThumbprint() string {
 	return base64.RawURLEncoding.EncodeToString(hash[:])
 }
 
-
 // Utility functions
 func encodeHex(b []byte) string {
 	const hexChars = "0123456789abcdef"
@@ -472,7 +479,7 @@ func decodeHex(s string) ([]byte, error) {
 	if len(s)%2 != 0 {
 		return nil, fmt.Errorf("hex string has odd length")
 	}
-	
+
 	bytes := make([]byte, len(s)/2)
 	for i := 0; i < len(s); i += 2 {
 		high, err := strconv.ParseUint(s[i:i+1], 16, 8)
@@ -485,6 +492,6 @@ func decodeHex(s string) ([]byte, error) {
 		}
 		bytes[i/2] = byte(high<<4 | low)
 	}
-	
+
 	return bytes, nil
 }

@@ -14,31 +14,38 @@ import (
 	"github.com/zkdpop/zkdpop-go/pkg/crypto/curve"
 	"github.com/zkdpop/zkdpop-go/pkg/dpop"
 	"github.com/zkdpop/zkdpop-go/pkg/jwt"
+	mw "github.com/zkdpop/zkdpop-go/pkg/middleware"
 	"github.com/zkdpop/zkdpop-go/pkg/storage"
 )
 
 func main() {
 	// Command line flags
 	var (
-		addr     = flag.String("addr", ":8080", "Server address")
-		keyFile  = flag.String("key", "keys/jwt-signing.pem", "JWT signing key file")
+		addr       = flag.String("addr", ":8080", "Server address")
+		keyFile    = flag.String("key", "keys/jwt-signing.pem", "JWT signing key file")
 		configFile = flag.String("config", "keys/jwt-config.json", "JWT config file")
-		issuer   = flag.String("issuer", "https://auth.zkdpop.example", "JWT issuer")
-		audience = flag.String("audience", "zkdpop-api", "JWT audience")
-		tokenTTL = flag.Duration("token-ttl", 5*time.Minute, "JWT token TTL")
+		issuer     = flag.String("issuer", "https://auth.zkdpop.example", "JWT issuer")
+		audience   = flag.String("audience", "zkdpop-api", "JWT audience")
+		tokenTTL   = flag.Duration("token-ttl", 5*time.Minute, "JWT token TTL")
 		sessionTTL = flag.Duration("session-ttl", 2*time.Minute, "ZK session TTL")
-		replayTTL = flag.Duration("replay-ttl", 5*time.Minute, "DPoP replay cache TTL")
+		replayTTL  = flag.Duration("replay-ttl", 5*time.Minute, "DPoP replay cache TTL")
+		rateLimit  = flag.Int("rate-limit", 120, "Max requests per minute per client")
+		curveName  = flag.String("curve", "secp256k1", "Curve to use (secp256k1|ristretto255)")
 	)
 	flag.Parse()
 
 	log.Println("Starting zkDPoP Auth Server...")
 
-	// Initialize curve (secp256k1)
-	curve := curve.NewSecp256k1()
-	log.Printf("Using curve: %s", curve.Name())
+	// Initialize curve based on flag
+	activeCurve, err := curve.FromName(*curveName)
+	if err != nil {
+		log.Fatalf("Unsupported curve %q: %v", *curveName, err)
+	}
+	log.Printf("Using curve: %s", activeCurve.Name())
+	log.Printf("Rate limit: %d requests/minute per client", *rateLimit)
 
 	// Initialize storage (in-memory for demo)
-	store := storage.NewMemoryStore()
+	var store storage.Store = storage.NewMemoryStore()
 	defer store.Close()
 	log.Println("Initialized in-memory storage")
 
@@ -48,12 +55,11 @@ func main() {
 
 	// Initialize JWT signer
 	var tokenSigner jwt.TokenSigner
-	var err error
 
 	// Check if key files exist
 	if _, err := os.Stat(*keyFile); os.IsNotExist(err) {
 		log.Printf("Key file %s does not exist, generating new key...", *keyFile)
-		
+
 		// Generate new key pair
 		if err := jwt.GenerateKeyPairFiles("ecdsa", "auth-key-1", *issuer, *keyFile, *configFile); err != nil {
 			log.Fatalf("Failed to generate key pair: %v", err)
@@ -75,7 +81,7 @@ func main() {
 		TokenTTL:   *tokenTTL,
 		SessionTTL: *sessionTTL,
 	}
-	handlers := auth.NewHandlers(store, curve, tokenSigner, replayStore, authConfig)
+	handlers := auth.NewHandlers(store, activeCurve, tokenSigner, replayStore, authConfig)
 
 	// Setup router
 	r := chi.NewRouter()
@@ -86,6 +92,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(30 * time.Second))
+	r.Use(mw.RateLimit(*rateLimit, time.Minute))
 
 	// CORS for development
 	r.Use(func(next http.Handler) http.Handler {
@@ -111,7 +118,7 @@ func main() {
 
 	// Auth routes
 	r.Post("/register", handlers.Register)
-	
+
 	// ZK login routes (require DPoP)
 	r.Route("/auth/zk", func(r chi.Router) {
 		// Apply DPoP middleware to auth endpoints
@@ -141,7 +148,7 @@ func main() {
 				http.Error(w, "Failed to list users", http.StatusInternalServerError)
 				return
 			}
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprintf(w, `{"users":%d,"data":%v}`, len(users), users)
 		})

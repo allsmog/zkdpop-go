@@ -1,0 +1,5 @@
+{
+  "type": "ecdsa",
+  "kid": "auth-key-1",
+  "issuer": "https://auth.zkdpop.example"
+}

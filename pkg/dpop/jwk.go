@@ -7,6 +7,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/big"
+
+	"github.com/btcsuite/btcd/btcec/v2"
 )
 
 // jwkToPublicKey converts a JWK to a Go public key for JWT verification
@@ -33,9 +35,7 @@ func ecJWKToPublicKey(jwk *JWK) (*ecdsa.PublicKey, error) {
 	case "P-521":
 		curve = elliptic.P521()
 	case "secp256k1":
-		// Note: Go's standard library doesn't include secp256k1
-		// For production, you'd need to use a library like btcec
-		return nil, fmt.Errorf("secp256k1 not supported in standard library")
+		curve = btcec.S256()
 	default:
 		return nil, fmt.Errorf("unsupported curve: %s", jwk.Crv)
 	}
@@ -157,7 +157,7 @@ func ecPublicKeyToJWK(key *ecdsa.PublicKey) (*JWK, error) {
 func rsaPublicKeyToJWK(key *rsa.PublicKey) (*JWK, error) {
 	// Convert modulus and exponent to bytes
 	nBytes := key.N.Bytes()
-	
+
 	// Convert exponent to bytes
 	e := big.NewInt(int64(key.E))
 	eBytes := e.Bytes()
