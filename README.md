@@ -119,11 +119,27 @@ Even if an attacker steals your token, they can't use it without your private ke
 
 ## Quick Start
 
-```bash
-# Start auth server
-go run ./cmd/zkdpop-authd
+### Option 1: Docker (Recommended for Non-Go Users)
 
-# Start demo API server  
+```bash
+# Start the demo with Docker Compose
+docker-compose up
+
+# Open http://localhost:8081 in your browser
+
+# Optional: customize settings
+cp .env.example .env
+# Edit .env, then restart
+```
+
+### Option 2: Go
+
+```bash
+# Start the interactive demo (includes web UI)
+go run ./cmd/demo
+
+# Or run auth server and API separately:
+go run ./cmd/zkdpop-authd
 go run ./cmd/zkdpop-demo-api
 
 # Run example client
@@ -136,10 +152,57 @@ go run ./examples/client-go --curve ristretto255
 
 Both servers expose a `--rate-limit` flag (requests per minute per client). The default of `120` for the authd binary and `240` for the demo API keeps login flows responsive while guarding against brute-force attempts.
 
+## API Examples
+
+### curl / httpie
+
+```bash
+# Get API info
+curl http://localhost:8081/api/info | jq
+
+# Get JWKS (public keys for JWT verification)
+curl http://localhost:8081/.well-known/jwks.json | jq
+
+# Register a user (using secp256k1 generator point as example)
+curl -X POST http://localhost:8081/api/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pk": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    "meta": {"name": "test-user"}
+  }'
+
+# Check registered users count
+curl http://localhost:8081/api/admin/users
+```
+
+> **Note:** The full ZK authentication flow requires DPoP proof generation, which is complex to do via curl. Use the **web UI** at http://localhost:8081 or the **Go client** for complete testing.
+
+### Postman
+
+Import `docs/zkdpop-demo.postman_collection.json` for a complete API collection with examples and documentation.
+
+## Failure Scenarios
+
+The demo includes endpoints that explain what happens when authentication fails:
+
+| Scenario | Endpoint | What It Demonstrates |
+|----------|----------|---------------------|
+| Invalid Proof | `/api/demo/fail/invalid-proof` | Attacker without private key cannot forge proof |
+| DPoP Mismatch | `/api/demo/fail/dpop-mismatch` | Stolen tokens can't be used with different DPoP key |
+| Expired Session | `/api/demo/fail/expired-session` | Time-limited sessions prevent delayed attacks |
+| Replay Attack | `/api/demo/fail/replay-attack` | Each DPoP proof can only be used once |
+| Missing DPoP | `/api/demo/fail/missing-dpop` | Tokens alone are insufficient for protected resources |
+
+```bash
+# Example: Learn about replay protection
+curl http://localhost:8081/api/demo/fail/replay-attack | jq
+```
+
 ## Project Structure
 
-- `cmd/zkdpop-authd` - Reference auth server
-- `cmd/zkdpop-demo-api` - Example resource server
+- `cmd/demo/` - Interactive demo with web UI
+- `cmd/zkdpop-authd/` - Reference auth server
+- `cmd/zkdpop-demo-api/` - Example resource server
 - `pkg/crypto/` - Curve interfaces and Schnorr verification
 - `pkg/dpop/` - DPoP proof verification and JWK thumbprints
 - `pkg/jwt/` - JWT minting/verification with cnf.jkt binding
@@ -147,6 +210,9 @@ Both servers expose a `--rate-limit` flag (requests per minute per client). The 
 - `pkg/storage/` - Storage interfaces and implementations
 - `pkg/middleware/` - HTTP middleware for DPoP and JWT verification
 - `examples/client-go/` - Sample client implementation
+- `docs/` - Protocol diagrams and Postman collection
+- `Dockerfile` / `docker-compose.yml` - Container deployment
+- `.env.example` - Configuration template
 
 ## Standards Compliance
 

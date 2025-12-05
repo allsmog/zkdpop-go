@@ -1,0 +1,255 @@
+{
+  "info": {
+    "_postman_id": "zkdpop-demo-collection",
+    "name": "zkDPoP Demo",
+    "description": "Zero-Knowledge Demonstration of Proof-of-Possession Authentication\n\n## Overview\n\nThis collection demonstrates the zkDPoP authentication protocol. Due to the cryptographic nature of DPoP proofs, the full authentication flow requires a proper client implementation (see the web UI or Go client).\n\n## What You Can Test Here\n\n1. **Info & Discovery endpoints** - No auth required\n2. **User Registration** - Simple POST request\n3. **Failure Scenarios** - Understand security protections\n4. **JWKS endpoint** - Get public keys for verification\n\n## Full Auth Flow\n\nFor the complete ZK authentication flow, use:\n- Web UI: http://localhost:8081\n- Go client: `go run ./examples/client-go`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8081",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Discovery",
+      "item": [
+        {
+          "name": "Get Demo Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/info",
+              "host": ["{{base_url}}"],
+              "path": ["api", "info"]
+            },
+            "description": "Returns information about the demo API including available endpoints and features."
+          },
+          "response": []
+        },
+        {
+          "name": "Get JWKS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/.well-known/jwks.json",
+              "host": ["{{base_url}}"],
+              "path": [".well-known", "jwks.json"]
+            },
+            "description": "Returns the JSON Web Key Set (JWKS) containing public keys for JWT verification."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Registered Users Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "users"]
+            },
+            "description": "Returns the count of registered users (demo/admin endpoint)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Registration",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"pk\": \"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798\",\n    \"meta\": {\n        \"name\": \"Test User\",\n        \"registered_via\": \"postman\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "register"]
+            },
+            "description": "Register a new user with their secp256k1 public key.\n\n**Note:** The example public key is the secp256k1 generator point (private key = 1). Generate real keys for actual testing."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication (Requires DPoP)",
+      "description": "These endpoints require valid DPoP proofs and cannot be easily tested in Postman. Use the web UI or Go client instead.",
+      "item": [
+        {
+          "name": "Start ZK Commit (Requires DPoP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "DPoP",
+                "value": "<dpop-proof-jwt>",
+                "description": "DPoP proof JWT - must be generated with proper signing"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"pk\": \"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798\",\n    \"T\": \"<commitment-point-hex>\",\n    \"aud\": \"demo-api\",\n    \"path\": \"/api/auth/zk/commit\",\n    \"method\": \"POST\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/zk/commit",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "zk", "commit"]
+            },
+            "description": "**Requires valid DPoP proof!**\n\nThis endpoint starts the ZK authentication flow. You need:\n1. A valid secp256k1 commitment point T = r*G\n2. A valid DPoP proof signed with your DPoP key\n\nUse the web UI for interactive testing."
+          },
+          "response": []
+        },
+        {
+          "name": "Complete ZK Auth (Requires DPoP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "DPoP",
+                "value": "<dpop-proof-jwt>",
+                "description": "DPoP proof JWT - must use same key as commit phase"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"session_id\": \"<session-id-from-commit>\",\n    \"s\": \"<response-scalar-hex>\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/zk/complete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "zk", "complete"]
+            },
+            "description": "**Requires valid DPoP proof!**\n\nCompletes the ZK authentication and returns a JWT token.\n\nYou need:\n1. session_id from the commit phase\n2. Schnorr response s = r + c*x mod q\n3. DPoP proof with the SAME key used in commit phase"
+          },
+          "response": []
+        },
+        {
+          "name": "Access Protected Resource (Requires JWT + DPoP)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer <jwt-token>",
+                "description": "JWT token from authentication"
+              },
+              {
+                "key": "DPoP",
+                "value": "<dpop-proof-jwt>",
+                "description": "Fresh DPoP proof for this request"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/protected",
+              "host": ["{{base_url}}"],
+              "path": ["api", "protected"]
+            },
+            "description": "**Requires valid JWT AND DPoP proof!**\n\nAccess a protected resource. Requires:\n1. JWT token from successful authentication\n2. Fresh DPoP proof signed with the same key that was used during authentication\n\nThe server verifies:\n- JWT signature and claims\n- DPoP proof signature and binding\n- JWT cnf.jkt matches DPoP key thumbprint"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Failure Scenarios",
+      "description": "These endpoints explain what happens when authentication fails in various ways. They return educational JSON responses describing the security mechanisms.",
+      "item": [
+        {
+          "name": "Demo: Invalid Schnorr Proof",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/demo/fail/invalid-proof",
+              "host": ["{{base_url}}"],
+              "path": ["api", "demo", "fail", "invalid-proof"]
+            },
+            "description": "Explains what happens when someone tries to authenticate without knowing the private key."
+          },
+          "response": []
+        },
+        {
+          "name": "Demo: DPoP Key Mismatch",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/demo/fail/dpop-mismatch",
+              "host": ["{{base_url}}"],
+              "path": ["api", "demo", "fail", "dpop-mismatch"]
+            },
+            "description": "Explains sender-constrained token protection - what happens when an attacker steals a token and tries to use it with their own DPoP key."
+          },
+          "response": []
+        },
+        {
+          "name": "Demo: Expired Session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/demo/fail/expired-session",
+              "host": ["{{base_url}}"],
+              "path": ["api", "demo", "fail", "expired-session"]
+            },
+            "description": "Explains time-based session protection against delayed attacks."
+          },
+          "response": []
+        },
+        {
+          "name": "Demo: Replay Attack Blocked",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/demo/fail/replay-attack",
+              "host": ["{{base_url}}"],
+              "path": ["api", "demo", "fail", "replay-attack"]
+            },
+            "description": "Explains how replay attacks are detected and blocked."
+          },
+          "response": []
+        },
+        {
+          "name": "Demo: Missing DPoP Proof",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/demo/fail/missing-dpop",
+              "host": ["{{base_url}}"],
+              "path": ["api", "demo", "fail", "missing-dpop"]
+            },
+            "description": "Explains that tokens alone are not sufficient - DPoP proof is always required."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
