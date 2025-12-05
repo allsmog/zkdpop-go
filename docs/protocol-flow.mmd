@@ -1,0 +1,62 @@
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant A as Auth Server
+    participant R as Resource Server
+
+    Note over C: Generate identity keypair (x, PK=x*G)
+    Note over C: Generate DPoP keypair
+
+    rect rgb(240, 248, 255)
+        Note over C,A: Registration (One-time)
+        C->>A: POST /register {pk: PK}
+        A-->>C: 201 Created
+    end
+
+    rect rgb(255, 250, 240)
+        Note over C,A: ZK Authentication Flow
+
+        Note over C: STEP 1: Generate commitment
+        Note over C: r = random scalar
+        Note over C: T = r * G
+
+        C->>A: POST /auth/zk/commit<br/>{pk, T, aud, path, method}<br/>+ DPoP header
+
+        Note over A: Validate DPoP proof
+        Note over A: Generate server_ephemeral (32 random bytes)
+        Note over A: timeslice = truncate(now, minute)
+        Note over A: ctx = H(aud || path || method || timeslice || server_ephemeral)
+        Note over A: c = H(T || PK || ctx) mod q
+        Note over A: Store session {T, c, timeslice, server_ephemeral, jkt}
+
+        A-->>C: {session_id, c, timeslice, server_ephemeral}
+
+        Note over C: STEP 2: Compute response
+        Note over C: ctx = H(aud || path || method || timeslice || server_ephemeral)
+        Note over C: c = H(T || PK || ctx) mod q
+        Note over C: s = r + c*x mod q
+
+        C->>A: POST /auth/zk/complete<br/>{session_id, s}<br/>+ DPoP header
+
+        Note over A: STEP 3: Verify proof
+        Note over A: Check: s*G == T + c*PK
+        Note over A: Verify DPoP JKT matches session
+        Note over A: Mint JWT with cnf.jkt claim
+
+        A-->>C: {access_token: JWT}
+    end
+
+    rect rgb(240, 255, 240)
+        Note over C,R: API Request (with sender-constrained token)
+
+        Note over C: Create fresh DPoP proof for this request
+
+        C->>R: GET /api/resource<br/>Authorization: Bearer JWT<br/>DPoP: proof
+
+        Note over R: Verify DPoP signature
+        Note over R: Check htm/htu match request
+        Note over R: Verify JWT signature
+        Note over R: Check JWT.cnf.jkt == DPoP.jkt
+
+        R-->>C: 200 OK {data}
+    end
