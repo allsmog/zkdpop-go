@@ -222,4 +222,4 @@ curl http://localhost:8081/api/demo/fail/replay-attack | jq
 
 ## License
 
-MIT
+[MIT](LICENSE)

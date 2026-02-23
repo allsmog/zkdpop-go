@@ -52,7 +52,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/zkdpop/zkdpop-go/pkg/crypto/curve"
+	"github.com/allsmog/zkdpop-go/pkg/crypto/curve"
 )
 
 // Domain separation constants for hash functions.

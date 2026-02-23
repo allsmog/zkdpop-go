@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/lestrrat-go/jwx/v2/jwk"
-	"github.com/zkdpop/zkdpop-go/pkg/dpop"
-	"github.com/zkdpop/zkdpop-go/pkg/jwt"
+	"github.com/allsmog/zkdpop-go/pkg/dpop"
+	"github.com/allsmog/zkdpop-go/pkg/jwt"
 )
 
 // ContextKey is used for storing values in context

@@ -15,10 +15,10 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/zkdpop/zkdpop-go/pkg/crypto/curve"
-	"github.com/zkdpop/zkdpop-go/pkg/dpop"
-	jwtpkg "github.com/zkdpop/zkdpop-go/pkg/jwt"
-	"github.com/zkdpop/zkdpop-go/pkg/storage"
+	"github.com/allsmog/zkdpop-go/pkg/crypto/curve"
+	"github.com/allsmog/zkdpop-go/pkg/dpop"
+	jwtpkg "github.com/allsmog/zkdpop-go/pkg/jwt"
+	"github.com/allsmog/zkdpop-go/pkg/storage"
 )
 
 func setupTestHandlers(t *testing.T) *Handlers {

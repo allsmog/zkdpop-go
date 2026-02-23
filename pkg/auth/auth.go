@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/zkdpop/zkdpop-go/pkg/crypto/curve"
-	"github.com/zkdpop/zkdpop-go/pkg/crypto/schnorr"
-	"github.com/zkdpop/zkdpop-go/pkg/dpop"
-	"github.com/zkdpop/zkdpop-go/pkg/jwt"
-	"github.com/zkdpop/zkdpop-go/pkg/storage"
+	"github.com/allsmog/zkdpop-go/pkg/crypto/curve"
+	"github.com/allsmog/zkdpop-go/pkg/crypto/schnorr"
+	"github.com/allsmog/zkdpop-go/pkg/dpop"
+	"github.com/allsmog/zkdpop-go/pkg/jwt"
+	"github.com/allsmog/zkdpop-go/pkg/storage"
 )
 
 // Handlers contains all authentication handlers

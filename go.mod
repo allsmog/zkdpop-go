@@ -1,4 +1,4 @@
-module github.com/zkdpop/zkdpop-go
+module github.com/allsmog/zkdpop-go
 
 go 1.25.0
 

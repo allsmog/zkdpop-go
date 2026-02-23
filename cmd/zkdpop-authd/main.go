@@ -10,12 +10,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/zkdpop/zkdpop-go/pkg/auth"
-	"github.com/zkdpop/zkdpop-go/pkg/crypto/curve"
-	"github.com/zkdpop/zkdpop-go/pkg/dpop"
-	"github.com/zkdpop/zkdpop-go/pkg/jwt"
-	mw "github.com/zkdpop/zkdpop-go/pkg/middleware"
-	"github.com/zkdpop/zkdpop-go/pkg/storage"
+	"github.com/allsmog/zkdpop-go/pkg/auth"
+	"github.com/allsmog/zkdpop-go/pkg/crypto/curve"
+	"github.com/allsmog/zkdpop-go/pkg/dpop"
+	"github.com/allsmog/zkdpop-go/pkg/jwt"
+	mw "github.com/allsmog/zkdpop-go/pkg/middleware"
+	"github.com/allsmog/zkdpop-go/pkg/storage"
 )
 
 func main() {

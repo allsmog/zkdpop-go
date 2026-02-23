@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/zkdpop/zkdpop-go/pkg/crypto/curve"
+	"github.com/allsmog/zkdpop-go/pkg/crypto/curve"
 )
 
 func TestSchnorrVerification(t *testing.T) {

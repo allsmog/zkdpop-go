@@ -19,9 +19,9 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/zkdpop/zkdpop-go/pkg/crypto/curve"
-	"github.com/zkdpop/zkdpop-go/pkg/crypto/schnorr"
-	"github.com/zkdpop/zkdpop-go/pkg/dpop"
+	"github.com/allsmog/zkdpop-go/pkg/crypto/curve"
+	"github.com/allsmog/zkdpop-go/pkg/crypto/schnorr"
+	"github.com/allsmog/zkdpop-go/pkg/dpop"
 )
 
 func main() {

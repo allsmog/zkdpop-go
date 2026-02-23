@@ -11,8 +11,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/lestrrat-go/jwx/v2/jwk"
-	"github.com/zkdpop/zkdpop-go/pkg/dpop"
-	mw "github.com/zkdpop/zkdpop-go/pkg/middleware"
+	"github.com/allsmog/zkdpop-go/pkg/dpop"
+	mw "github.com/allsmog/zkdpop-go/pkg/middleware"
 )
 
 func main() {

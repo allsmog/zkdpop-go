@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zkdpop/zkdpop-go/pkg/crypto/curve"
-	"github.com/zkdpop/zkdpop-go/pkg/crypto/schnorr"
-	"github.com/zkdpop/zkdpop-go/pkg/dpop"
-	jwtpkg "github.com/zkdpop/zkdpop-go/pkg/jwt"
-	"github.com/zkdpop/zkdpop-go/pkg/storage"
+	"github.com/allsmog/zkdpop-go/pkg/crypto/curve"
+	"github.com/allsmog/zkdpop-go/pkg/crypto/schnorr"
+	"github.com/allsmog/zkdpop-go/pkg/dpop"
+	jwtpkg "github.com/allsmog/zkdpop-go/pkg/jwt"
+	"github.com/allsmog/zkdpop-go/pkg/storage"
 	"github.com/lestrrat-go/jwx/v2/jws"
 )
 

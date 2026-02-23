@@ -13,8 +13,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/zkdpop/zkdpop-go/pkg/dpop"
-	zkjwt "github.com/zkdpop/zkdpop-go/pkg/jwt"
+	"github.com/allsmog/zkdpop-go/pkg/dpop"
+	zkjwt "github.com/allsmog/zkdpop-go/pkg/jwt"
 )
 
 // Test helpers

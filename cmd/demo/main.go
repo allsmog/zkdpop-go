@@ -11,12 +11,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/zkdpop/zkdpop-go/pkg/auth"
-	"github.com/zkdpop/zkdpop-go/pkg/crypto/curve"
-	"github.com/zkdpop/zkdpop-go/pkg/dpop"
-	"github.com/zkdpop/zkdpop-go/pkg/jwt"
-	"github.com/zkdpop/zkdpop-go/pkg/middleware"
-	"github.com/zkdpop/zkdpop-go/pkg/storage"
+	"github.com/allsmog/zkdpop-go/pkg/auth"
+	"github.com/allsmog/zkdpop-go/pkg/crypto/curve"
+	"github.com/allsmog/zkdpop-go/pkg/dpop"
+	"github.com/allsmog/zkdpop-go/pkg/jwt"
+	"github.com/allsmog/zkdpop-go/pkg/middleware"
+	"github.com/allsmog/zkdpop-go/pkg/storage"
 )
 
 //go:embed static/*
