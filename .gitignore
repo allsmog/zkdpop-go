@@ -1,0 +1,11 @@
+# Private keys
+keys/*.pem
+
+# OS files
+.DS_Store
+
+# IDE / workspace
+.lattice_workspace/
+
+# Build output
+repomix-output.txt
