@@ -1,6 +1,20 @@
 # zkDPoP-Go
 
-A Golang framework for zero-knowledge Demonstration of Proof-of-Possession (zkDPoP) authentication using interactive Schnorr signatures with sender-constrained JWTs.
+Go framework for zero-knowledge Demonstration of Proof-of-Possession
+(zkDPoP) authentication using interactive Schnorr signatures,
+sender-constrained JWTs, and DPoP request proofs.
+
+![zkDPoP-Go social preview](docs/social-preview.png)
+
+## At a glance
+
+| Area | Details |
+| --- | --- |
+| Protocol | Interactive Schnorr zero-knowledge login over secp256k1 or ristretto255 |
+| Tokens | Short-lived JWTs bound to client DPoP keys with `cnf.jkt` |
+| Resource servers | Middleware for stateless JWT + DPoP verification |
+| Security controls | Replay protection, request binding, freshness windows, rate-limit hooks |
+| Demo | Reference auth server and demo API |
 
 ## Features
 
